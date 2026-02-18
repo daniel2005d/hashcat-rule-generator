@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument("-o",'--output', help='Output file rule', required=True)
 parser.add_argument("-w",'--wordlist', help='Diccionary', required=True)
-parser.add_argument("-n",'--numbers', help='Add especial numbers. Format: (1900-2000) o (2010,2012,2020,2021)')
+parser.add_argument("-n",'--numbers',action='append', help='Add especial numbers. Format: (1900-2000) o (2010,2012,2020,2021)')
 parser.add_argument("-d",'--date',action='append', help='Special dates. Format: DDMMYYYY')
 parser.add_argument("-nl",'--no-leet',action='store_false', help='Special dates. Format: DDMMYYYY')
 
@@ -92,7 +92,7 @@ def toggle_letter():
         write_rule(f'T{t}')
         for l in leet:
             for v in leet[l]:
-                write_rule(f's{l}{v}T{v}')
+                write_rule(f's{l}{v}T{t}')
 
 def add_numbers():
     for n in string.digits:
@@ -106,8 +106,21 @@ def write_rule(line:str):
     if line not in lines_saved:
         rule.write(f'{line}\n')
         lines_saved.append(line)
+        #rule.flush()
 
-def additional_numbers(numbers):
+def additional_numbers(list_numbers):
+    for numbers in list_numbers:
+        add_custom_number(numbers)
+
+def write_letter(letter):
+    line = ''
+    for l in letter:
+        line+=f'${l}'
+    
+    write_rule(line)
+    
+
+def add_custom_number(numbers):
     range_numbers = set()
     if ',' in numbers:
         fragments = numbers.split(',')
@@ -117,16 +130,32 @@ def additional_numbers(numbers):
         fragments = numbers.split("-")
         n1 = fragments[0]
         n2 = fragments[1]
-        for n in range(int(n1),int(n2)):
+        for n in range(int(n1),int(n2)+1):
             range_numbers.add(str(n))
     elif numbers:
         range_numbers.add(numbers)
-    
+        
     for n in range_numbers:
-        line = ''
-        for x in n:
-            line+=f'${x}' 
-        write_rule(line)
+        write_letter(n)
+        # line = ''
+        # for x in n:
+        #     line+=f'${x}' 
+        # write_rule(line)
+        # for c in special_chars:
+        #     if '.' in c:
+        #         print("")
+        #     write_rule(f'${c}{line}')
+        #     write_rule(f'{line}${c}')
+        
+        for num,char in itertools.product(range_numbers, special_chars):
+            write_letter(num+char)
+        
+
+        for char, num in itertools.product(special_chars, range_numbers):
+            write_letter(char + num)
+
+        for izq, num, der in itertools.product(special_chars, range_numbers, special_chars):
+            write_letter(izq + num + der)
     
 
 """
@@ -183,6 +212,7 @@ if no_leet:
     add_leet()
 
 wordlist = recreate_wordlist(file_words)
+
 if special_dates:
     add_special_dates()
 # Numeros 0-9
