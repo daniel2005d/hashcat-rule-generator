@@ -4,6 +4,7 @@ import subprocess
 from uuid import uuid4
 from os import path
 import argparse
+import platform
 
 parser = argparse.ArgumentParser()
 
@@ -22,7 +23,13 @@ special_dates = args.date
 no_leet = args.no_leet
 
 base_folder = path.dirname(file_words)
-new_wordlist = f'{base_folder}/{str(uuid4())}.lst'
+os_name = platform.system()
+new_wordlist = None
+
+if os_name == "Windows":
+    new_wordlist = f'{base_folder}\\{str(uuid4())}.lst'
+else:
+    new_wordlist = f'{base_folder}/{str(uuid4())}.lst'
 max_length = 0
 
 with open(file_words, "r", encoding="utf-8") as f:
