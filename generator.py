@@ -36,7 +36,7 @@ with open(file_words, "r", encoding="utf-8") as f:
     max_length = max(len(line.strip()) for line in f)
 
 
-special_chars = ["!","@","#","$","%","&","*",".",",","?"]
+special_chars = ["!","@","#","$","%","&","*",".",",","?","+"]
 leet = {
     "a":["4","@"],
     "e":["3"],
