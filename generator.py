@@ -1,0 +1,189 @@
+import itertools
+import string
+import subprocess
+from uuid import uuid4
+from os import path
+import argparse
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument("-o",'--output', help='Output file rule', required=True)
+parser.add_argument("-w",'--wordlist', help='Diccionary', required=True)
+parser.add_argument("-n",'--numbers', help='Add especial numbers. Format: (1900-2000) o (2010,2012,2020,2021)')
+parser.add_argument("-d",'--date',action='append', help='Special dates. Format: DDMMYYYY')
+parser.add_argument("-nl",'--no-leet',action='store_false', help='Special dates. Format: DDMMYYYY')
+
+args = parser.parse_args()
+
+file_rule = args.output
+file_words = args.wordlist
+numbers = args.numbers
+special_dates = args.date
+no_leet = args.no_leet
+
+base_folder = path.dirname(file_words)
+new_wordlist = f'{base_folder}/{str(uuid4())}.lst'
+max_length = 0
+
+with open(file_words, "r", encoding="utf-8") as f:
+    max_length = max(len(line.strip()) for line in f)
+
+
+special_chars = ["!","@","#","$","%","&","*",".",",","?"]
+leet = {
+    "a":["4","@"],
+    "e":["3"],
+    "i":["l","1","|"],
+    "o":["0"],
+    "t":["7"],
+    "5":["s"],
+    "g":["9"],
+    "z":["2"]
+}
+
+default_rules = ["l","u"]
+
+
+def combine_dates():
+    combinations = set()
+    days = sorted({date[:2] for date in special_dates})
+    months = sorted({date[2:4] for date in special_dates})
+    years = sorted({date[4:8] for date in special_dates})
+    i = itertools.product(days, months)
+    for d,m in i:
+        combinations.add(d+m)
+        combinations.add(m+d)
+
+    return sorted(combinations)
+
+def add_specialchars(line=None):
+    if line:
+        for c in special_chars:
+            write_rule(f'${c}{line}')
+            write_rule(f'{line}${c}')
+    
+    for c in itertools.permutations(special_chars,2):
+        combinations = ''
+        for iter in c:
+            combinations+=f'${iter}'
+        
+        write_rule(combinations)
+
+def add_dates(number):
+    line = ''
+    values_added = []
+    if number not in values_added:
+        for r in number:
+            line += f'${r}'
+            values_added.append(number)
+            
+        if line:
+            return line
+    
+def toggle_letter():
+    for t in range(max_length):
+        write_rule(f'T{t}')
+        for l in leet:
+            for v in leet[l]:
+                write_rule(f's{l}{v}T{v}')
+
+def add_numbers():
+    for n in string.digits:
+        write_rule(f'${n}')
+        for c in special_chars:
+            write_rule(f'${c}${n}')
+            write_rule(f'${n}${c}')
+
+
+def write_rule(line:str):
+    if line not in lines_saved:
+        rule.write(f'{line}\n')
+        lines_saved.append(line)
+
+def additional_numbers(numbers):
+    range_numbers = set()
+    if ',' in numbers:
+        fragments = numbers.split(',')
+        for n in fragments:
+            range_numbers.add(n)
+    elif '-' in numbers:
+        fragments = numbers.split("-")
+        n1 = fragments[0]
+        n2 = fragments[1]
+        for n in range(int(n1),int(n2)):
+            range_numbers.add(str(n))
+    elif numbers:
+        range_numbers.add(numbers)
+    
+    for n in range_numbers:
+        line = ''
+        for x in n:
+            line+=f'${x}' 
+        write_rule(line)
+    
+
+"""
+    Se adcionan las fechas especificadas
+"""
+def add_special_dates():
+    dates = combine_dates()
+    for d in dates:
+        v1 = d[:2]
+        v2 = d[2:4]
+        linev1 = add_dates(v1)
+        linev2 = add_dates(v2)
+        write_rule(linev1)
+        write_rule(linev2)
+        write_rule(linev1+linev2)
+        add_specialchars(linev1)
+        add_specialchars(linev2)
+        add_specialchars(linev1+linev2)
+
+def add_leet():
+    ## L33t
+    for l in leet:
+        for v in leet[l]:
+            write_rule(f's{l}{v}')
+
+def recreate_wordlist(wordlist):
+    rule.flush()
+    
+    process = subprocess.Popen(["hashcat",wordlist,"-r", file_rule, "--stdout"],
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE  ,
+                                text=True,
+                                startupinfo=None)
+    stdout, stderr = process.communicate()
+    if stderr:
+        print(stderr)
+    elif stdout:
+        
+        with open(new_wordlist, 'w', encoding='utf-8') as f:
+            for line in list(set(stdout.split())):
+                f.write(line+'\n')
+
+        return new_wordlist
+
+lines_saved = []
+rule = open(file_rule, 'w')
+
+## Default Rules
+for default in default_rules:
+    write_rule(default)
+
+toggle_letter()
+if no_leet:
+    add_leet()
+
+wordlist = recreate_wordlist(file_words)
+if special_dates:
+    add_special_dates()
+# Numeros 0-9
+add_numbers()
+# Numeros adicionales especificados
+additional_numbers(numbers)
+rule.close()
+
+
+print(f"[*] hashcat {new_wordlist} hashes.txt -r {file_rule}")
+print(f"[*] hashcat {new_wordlist} -r {file_rule} --stdout")
