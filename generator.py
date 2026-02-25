@@ -22,6 +22,7 @@ numbers = args.numbers
 special_dates = args.date
 no_leet = args.no_leet
 
+
 base_folder = path.dirname(file_words)
 os_name = platform.system()
 new_wordlist = None
@@ -66,15 +67,15 @@ def combine_dates():
 def add_specialchars(line=None):
     if line:
         for c in special_chars:
-            write_rule(f'${c}{line}')
-            write_rule(f'{line}${c}')
+            write_rule(f'${c}{line}', min_word)
+            write_rule(f'{line}${c}', min_word)
     
     for c in itertools.permutations(special_chars,2):
         combinations = ''
         for iter in c:
             combinations+=f'${iter}'
         
-        write_rule(combinations)
+        write_rule(combinations, min_word)
 
 def add_dates(number):
     line = ''
@@ -103,10 +104,13 @@ def add_numbers():
 
 
 def write_rule(line:str):
+    
+
     if line not in lines_saved:
         rule.write(f'{line}\n')
         lines_saved.append(line)
-        #rule.flush()
+        if len(lines_saved) % 20 == 0:
+            rule.flush()
 
 def additional_numbers(list_numbers):
     for numbers in list_numbers:
@@ -137,15 +141,6 @@ def add_custom_number(numbers):
         
     for n in range_numbers:
         write_letter(n)
-        # line = ''
-        # for x in n:
-        #     line+=f'${x}' 
-        # write_rule(line)
-        # for c in special_chars:
-        #     if '.' in c:
-        #         print("")
-        #     write_rule(f'${c}{line}')
-        #     write_rule(f'{line}${c}')
         
         for num,char in itertools.product(range_numbers, special_chars):
             write_letter(num+char)
@@ -168,9 +163,9 @@ def add_special_dates():
         v2 = d[2:4]
         linev1 = add_dates(v1)
         linev2 = add_dates(v2)
-        write_rule(linev1)
-        write_rule(linev2)
-        write_rule(linev1+linev2)
+        write_rule(linev1, min_word)
+        write_rule(linev2, min_word)
+        write_rule(linev1+linev2, min_word)
         add_specialchars(linev1)
         add_specialchars(linev2)
         add_specialchars(linev1+linev2)
