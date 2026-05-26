@@ -186,7 +186,7 @@ def recreate_wordlist(wordlist):
                                 startupinfo=None)
     stdout, stderr = process.communicate()
     if stderr:
-        print(stderr)
+        print(f"[!ERROR] {stderr} ")
     elif stdout:
         
         with open(new_wordlist, 'w', encoding='utf-8') as f:
@@ -208,14 +208,15 @@ if no_leet:
 
 wordlist = recreate_wordlist(file_words)
 
-if special_dates:
-    add_special_dates()
-# Numeros 0-9
-add_numbers()
-# Numeros adicionales especificados
-additional_numbers(numbers)
-rule.close()
+if wordlist:
+    if special_dates:
+        add_special_dates()
+    # Numeros 0-9
+    add_numbers()
+    # Numeros adicionales especificados
+    additional_numbers(numbers)
+    rule.close()
 
 
-print(f"[*] hashcat {new_wordlist} hashes.txt -r {file_rule}")
-print(f"[*] hashcat {new_wordlist} -r {file_rule} --stdout")
+    print(f"[*] hashcat {new_wordlist} hashes.txt -r {file_rule}")
+    print(f"[*] hashcat {new_wordlist} -r {file_rule} --stdout")
